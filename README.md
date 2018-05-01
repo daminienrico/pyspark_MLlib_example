@@ -30,7 +30,176 @@ Some csv files contains "parziale" in the name. It means "partial", indicating t
 
 ## Example
 
-![](/spark_app.html)
+```python
+#NB: you need to change the paths 
+```
+
+
+```python
+import findspark
+findspark.init("/opt/spark")
+```
+
+
+```python
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
+from pyspark import sql
+
+conf = SparkConf().setAppName("SO_project").setMaster("spark://damiani-master-slave-0:7077")
+sc = SparkContext(conf = conf)
+sqlContext = sql.SQLContext(sc)
+```
+
+
+```python
+#PERFORMANCE
+#1.The number of cores we should set in the SparkConf (It should be the same as the cores of the vm?) )
+#2.We should taking into account the argument numTasks of each transformation function 
+#3.Cache the data if we use it again: .cache()
+```
+
+
+```python
+def apply_preprocessing(rdd) :
+    '''
+    This function applies some transformations in order to have a dataset with this shape: ((plate,gate)) 
+     - **parameters**, **types**, **return** and **return types**::
+          :param rdd: RDD to transform
+          :type rdd: pyspark.rdd.RDD
+          :return: return the transformed RDD 
+          :rtype: pyspark.rdd.RDD
+    '''
+    header = rdd.first()
+    rdd = rdd.filter(lambda lines : lines!=header)
+    rdd = rdd.map(lambda lines : lines.split(";")).map(lambda (l1,l2,l3,l4,l5) : ((l1,int(l2))))
+    return rdd
+```
+
+
+```python
+import sh
+hdfsdir = '/user/ubuntu/hdfs/dataset'
+files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
+```
+
+
+```python
+#WORKFLOW: basically, it reads the first file (which means the first day) of the dataset and  
+#it adds the information of the other files (the other days) by using .union 
+def main() :
+    rdd_tot = sc.textFile(files[0])
+    rdd_tot = apply_preprocessing(rdd_tot)
+    
+    for file_path in files[1:] : 
+        rdd_new = sc.textFile(file_path)
+        rdd_new = apply_preprocessing(rdd_new)
+        rdd_tot = rdd_tot.union(rdd_new)
+    return rdd_tot 
+```
+
+
+```python
+%prun rdd = main() #It shouldn't take so long cause they are transformations!
+```
+
+     
+
+
+```python
+from pyspark.sql import Row
+import pyspark.sql.functions as F
+#what I'm doing here is to change the shape of the rdd (which is the summary of the all dataset): 
+#1) Firstly I need to convert the categorical nominal values (the gates) to numerical values and then
+#I need to count how many times a gate compares with a plate.  
+#2)I have to work with spark.DataFrame (which are optimazed)  
+
+df = (rdd.map(lambda (plate,gate) : Row(plate=plate,gate=gate))).toDF()
+types = df.select("gate").distinct().rdd.flatMap(lambda x: x).collect() #action
+types_expr = [F.when(F.col("gate") == ty, int(1) ).otherwise(int(0)).alias("gate_" + str(ty)) for ty in types]
+df = df.select("plate", *types_expr)
+%prun df= df.groupBy("plate").sum() #action #the command %prun is a command of jupyter which shows the performance
+```
+
+     
+
+
+```python
+%prun df.show() #It's an action 
+```
+
+    +-------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+
+    |  plate|sum(gate_1)|sum(gate_2)|sum(gate_3)|sum(gate_4)|sum(gate_5)|sum(gate_6)|sum(gate_7)|sum(gate_8)|sum(gate_9)|sum(gate_10)|sum(gate_11)|sum(gate_12)|sum(gate_13)|sum(gate_14)|sum(gate_16)|sum(gate_17)|sum(gate_18)|sum(gate_19)|sum(gate_20)|sum(gate_22)|sum(gate_23)|sum(gate_24)|sum(gate_25)|
+    +-------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+
+    |1147201|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           1|           0|           0|           0|
+    |8529873|          0|          0|          0|          1|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |2793645|          0|          0|          0|          0|          0|          0|          0|          0|          1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |3604472|          0|          0|          0|          0|          1|          0|          0|          0|          0|           0|           1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           1|
+    |8530376|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           1|           0|           0|           0|           0|           0|
+    |8530420|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           1|           1|           0|           0|           0|           0|
+    |8530538|          0|          0|          0|          0|          0|          0|          0|          0|          1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8530871|          0|          0|          0|          0|          1|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |1050640|          0|          0|          1|          0|          0|          0|          0|          0|          0|           1|           0|           0|           2|           0|           0|           0|           1|           0|           0|           0|           0|           0|           0|
+    |8530989|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           1|           0|           0|           0|           0|           0|           0|
+    | 494038|          0|          0|          0|          0|          0|          0|          0|          1|          0|           0|           0|           0|           0|           0|           0|           0|           1|           0|           0|           0|           0|           0|           0|
+    | 150002|          0|          0|          1|          1|          1|          0|          0|          2|          1|           2|           0|           0|           2|           0|           1|           0|           0|           0|           1|           0|           0|           0|           1|
+    |8531267|          0|          0|          0|          0|          0|          0|          0|          1|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8531311|          0|          0|          0|          0|          1|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8531429|          0|          0|          1|          0|          0|          0|          0|          0|          0|           0|           1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |5417456|          0|          0|          0|          0|          0|          0|          0|          1|          0|           0|           1|           0|           0|           1|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8531762|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           1|
+    |8531924|          0|          0|          0|          0|          0|          0|          0|          0|          0|           0|           0|           1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8532040|          0|          0|          0|          0|          0|          0|          0|          0|          0|           1|           0|           0|           1|           0|           0|           0|           0|           0|           0|           0|           0|           0|           0|
+    |8532158|          0|          1|          0|          0|          0|          0|          0|          0|          0|           0|           0|           0|           0|           0|           1|           0|           0|           1|           0|           0|           0|           0|           1|
+    +-------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+
+    only showing top 20 rows
+    
+     
+
+
+```python
+df.count() #It's an action 
+```
+
+
+
+
+    1594237
+
+
+
+
+```python
+#CLUSTERING
+from pyspark.mllib.clustering import KMeans
+from numpy import array
+from math import sqrt
+
+rdd = df.rdd.map(tuple)
+rdd = rdd.map(lambda row : row[1:])
+
+# Build the model (cluster the data)
+clusters = KMeans.train(rdd,10, maxIterations=10, runs=10, initializationMode="random")
+
+# Evaluate clustering by computing Within Set Sum of Squared Errors
+def error(point):
+    center = clusters.centers[clusters.predict(point)]
+    return sqrt(sum([x**2 for x in (point - center)]))
+
+WSSSE = rdd.map(lambda point: error(point)).reduce(lambda x, y: x + y)
+print("Within Set Sum of Squared Error = " + str(WSSSE))
+```
+
+    /opt/spark/python/pyspark/mllib/clustering.py:176: UserWarning: Support for runs is deprecated in 1.6.0. This param will have no effect in 1.7.0.
+      "Support for runs is deprecated in 1.6.0. This param will have no effect in 1.7.0.")
+
+
+    Within Set Sum of Squared Error = 2429782.06875
+
+
+## Comment
+
+The results are not the best we can achieved due to the data, however the target of this project was to provide an example and to understand the way of programming in a Spark environments, which is definitely one of the most promising computing framework, especially for Data Science at scale.
 
  
 
