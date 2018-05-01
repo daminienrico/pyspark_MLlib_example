@@ -2,7 +2,7 @@
 
 The aim of this project is to better understand how Spark works under the hood, additionally it provides an example of how to use spark for data preprocessing and data clustering.
 
-## recommendation
+## Recommendation
 
 I strongly suggest to use Jupyter Notebook, it's easy to install (especially if you install it through Anaconda) and it's definitely more interactively than launching an application with spark-submit. Furthermore, you can install some usefull features (magic commands) which also provides you some interesting information about the performance.
 
