@@ -53,14 +53,6 @@ sqlContext = sql.SQLContext(sc)
 
 
 ```python
-#PERFORMANCE
-#1.The number of cores we should set in the SparkConf (It should be the same as the cores of the vm?) )
-#2.We should taking into account the argument numTasks of each transformation function 
-#3.Cache the data if we use it again: .cache()
-```
-
-
-```python
 def apply_preprocessing(rdd) :
     '''
     This function applies some transformations in order to have a dataset with this shape: ((plate,gate)) 
