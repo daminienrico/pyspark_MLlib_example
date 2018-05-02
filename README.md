@@ -4,7 +4,7 @@ The aim of this project is to better understand how Spark works under the hood. 
 
 ## Recommendation
 
-I strongly suggest to use Jupyter Notebook, it's easy to install (especially if you install it through Anaconda) and it's definitely more interactively than launching an application with spark-submit. Furthermore, you can install some usefull features (magic commands) which also provides you some interesting information about the performance.
+I strongly suggest using Jupyter Notebook, it's easy to install (especially if you install it through Anaconda) and it's definitely more interactively than launching an application with spark-submit. Furthermore, you can install some usefull features (magic commands) which also provides you some interesting information about the performance.
 
 ## Dataset
 
@@ -31,22 +31,16 @@ Some csv files contains "parziale" in the name. It means "partial", indicating t
 ## Example
 
 ```python
-#NB: you need to change the paths 
-```
-
-
-```python
 import findspark
-findspark.init("/opt/spark")
+findspark.init("/<path_to>/spark")
 ```
-
 
 ```python
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark import sql
 
-conf = SparkConf().setAppName("SO_project").setMaster("spark://damiani-master-slave-0:7077")
+conf = SparkConf().setAppName("SO_project").setMaster("spark://<master-server>-0:7077")
 sc = SparkContext(conf = conf)
 sqlContext = sql.SQLContext(sc)
 ```
@@ -71,14 +65,12 @@ def apply_preprocessing(rdd) :
 
 ```python
 import sh
-hdfsdir = '/user/ubuntu/hdfs/dataset'
+hdfsdir = '/<path_to>/hdfs/dataset'
 files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
 ```
 
 
 ```python
-#WORKFLOW: basically, it reads the first file (which means the first day) of the dataset and  
-#it adds the information of the other files (the other days) by using .union 
 def main() :
     rdd_tot = sc.textFile(files[0])
     rdd_tot = apply_preprocessing(rdd_tot)
@@ -92,29 +84,22 @@ def main() :
 
 
 ```python
-%prun rdd = main() #It shouldn't take so long cause they are transformations!
+ rdd = main()
 ```
 
-     
-
+What I'm doing here is to change the shape of the rdd (which is the summary of the all dataset). Firstly I need to convert the categorical nominal values (the gates) to numerical values and then I need to count how many times a gate compares with a plate. It is better to work with spark.DataFrame (which are optimazed). 
 
 ```python
 from pyspark.sql import Row
-import pyspark.sql.functions as F
-#what I'm doing here is to change the shape of the rdd (which is the summary of the all dataset): 
-#1) Firstly I need to convert the categorical nominal values (the gates) to numerical values and then
-#I need to count how many times a gate compares with a plate.  
-#2)I have to work with spark.DataFrame (which are optimazed)  
+import pyspark.sql.functions as F 
 
 df = (rdd.map(lambda (plate,gate) : Row(plate=plate,gate=gate))).toDF()
 types = df.select("gate").distinct().rdd.flatMap(lambda x: x).collect() #action
 types_expr = [F.when(F.col("gate") == ty, int(1) ).otherwise(int(0)).alias("gate_" + str(ty)) for ty in types]
 df = df.select("plate", *types_expr)
-%prun df= df.groupBy("plate").sum() #action #the command %prun is a command of jupyter which shows the performance
+%prun df= df.groupBy("plate").sum() #action 
 ```
-
-     
-
+%prun is a Jupyter command which shows the performance
 
 ```python
 %prun df.show() #It's an action 
