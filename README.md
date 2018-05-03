@@ -4,7 +4,7 @@ The aim of this project is to better understand how Spark works under the hood. 
 
 ## Recommendation
 
-I strongly suggest using Jupyter Notebook, it's easy to install (especially if you install it through Anaconda) and it's definitely more interactively than launching an application with spark-submit. Furthermore, you can install some usefull features (magic commands) which also provides you some interesting information about the performance.
+I strongly suggest using Jupyter Notebook, it's easy to install (especially if you install it through Anaconda) and it's definitely more interactively than launching an application with spark-submit. Furthermore, you can install some usefull features (magic commands) which also provide some interesting information about the performance.
 
 ## Dataset
 
