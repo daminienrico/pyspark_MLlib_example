@@ -30,6 +30,10 @@ Some csv files contains "parziale" in the name. It means "partial", indicating t
 
 ## Example
 
+Firstly, we need to process and transform the data into a useful shape, which can be done by exploiting the powerful transformation functions provided by Spark. 
+Normally, the pre-processing takes really long if it is not done in a parallel way: that's why we use Spark!
+We are going to cluster by taking into account the cars which have been driven through the same gates and also by taking into account the number of times they drive through each gate. 
+
 ```python
 import findspark
 findspark.init("/<path_to>/spark")
