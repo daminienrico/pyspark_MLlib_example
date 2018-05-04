@@ -157,7 +157,7 @@ df.count() #action
 
 
 We are ready to cluster the data, but first we need to transform the DataFrame to an RDD. The first column is delited because the plate (which is a number) is not a meaningful information for KMeans. 
-It is necessary to tune the number of clusters 
+It will be necessary to tune the right number of clusters, dependig on the WSSSE.
 
 ```python
 #CLUSTERING
@@ -169,7 +169,7 @@ rdd = df.rdd.map(tuple)
 rdd = rdd.map(lambda row : row[1:])
 
 # Build the model (cluster the data)
-clusters = KMeans.train(rdd,10, maxIterations=10, runs=10, initializationMode="random")
+%prun clusters = KMeans.train(rdd,10, maxIterations=10, runs=10, initializationMode="random")
 ```
 The centers of each cluster:
 
@@ -229,11 +229,19 @@ cluster 9: [6.48491879 1.16264501 6.3837587  0.70139211 2.30023202 0.20324826
  4.84640371 3.0712297  0.73225058 0.63225058 0.77935035 1.74663573
  1.80904872 4.14802784 1.3962877  0.19605568 2.29025522]
 ```
+At the end we can compute the WSSSE
+```
+def error(point):
+    center = clusters.centers[clusters.predict(point)]
+    return sqrt(sum([x**2 for x in (point - center)]))
 
+WSSSE = rdd.map(lambda point: error(point)).reduce(lambda x, y: x + y)
+print("Within Set Sum of Squared Error = " + str(WSSSE))
+```
 
 ## Comment
 
-The results are not the best we can achieved due to the data, however if we compare this example with this one, which basically does the same things (especially the pre-processing), we can see that we have better performance by using Spark and the code is also more understandable. Furthermore, the target of this project was to provide an example and to understand the way of programming in a Spark environments, which is definitely one of the most promising computing framework, especially for Data Science at scale.
+The results are not the best we can achieved due to the data, however if we compare this example with [this one](https://github.com/daminienrico/py_analysis_clustering_motorway), which basically does the same things (especially the pre-processing), we can see that we have better performance by using Spark and the code is also more understandable. Furthermore, the target of this project was to provide an example and to understand the way of programming in a Spark environments, which is definitely one of the most promising computing framework, especially for Data Science at scale.
 
  
 
