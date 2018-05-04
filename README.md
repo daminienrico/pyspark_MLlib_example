@@ -62,6 +62,7 @@ def apply_preprocessing(rdd) :
     return rdd
 ```
 
+Getting the file names in the hdfs directory. 
 
 ```python
 import sh
@@ -102,7 +103,7 @@ df = df.select("plate", *types_expr)
 %prun is a Jupyter command which shows the performance
 
 ```python
-%prun df.show() #It's an action 
+%prun df.show() #action 
 ```
 
     +-------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+
@@ -135,7 +136,7 @@ df = df.select("plate", *types_expr)
 
 
 ```python
-df.count() #It's an action 
+df.count() #action 
 ```
 
 
@@ -144,7 +145,7 @@ df.count() #It's an action
     1594237
 
 
-
+We are ready to cluster the data, but first we need to transform the DataFrame to an RDD. The first column is delited because the plate (which is a number) is not a meaningful information for KMeans.  
 
 ```python
 #CLUSTERING
