@@ -86,13 +86,19 @@ def main() :
         rdd_tot = rdd_tot.union(rdd_new)
     return rdd_tot 
 ```
-
-
+They are not actions, therefore it does not take long. 
 ```python
- rdd = main()
+rdd = main() 
 ```
-
-What I'm doing here is to change the shape of the rdd (which is the summary of the all dataset). Firstly I need to convert the categorical nominal values (the gates) to numerical values and then I need to count how many times a gate compares with a plate. It is better to work with spark.DataFrame (which are optimazed). 
+When we call the function count() we need to know the actual number of records, that's why takes long.
+```python
+%prun count= rdd.count()
+print count 
+``` 
+``` 
+7264755
+``` 
+What I'm doing above is to change the shape of the rdd (which is the summary of the all dataset). Firstly I need to convert the categorical nominal values (the gates) to numerical values and then I need to count how many times a gate compares with a plate. It is better to work with spark.DataFrame (which are optimazed). 
 
 ```python
 from pyspark.sql import Row
@@ -138,6 +144,7 @@ df = df.select("plate", *types_expr)
     
      
 
+As we can see the number of records is definitely reduced. 
 
 ```python
 df.count() #action 
@@ -149,7 +156,8 @@ df.count() #action
     1594237
 
 
-We are ready to cluster the data, but first we need to transform the DataFrame to an RDD. The first column is delited because the plate (which is a number) is not a meaningful information for KMeans.  
+We are ready to cluster the data, but first we need to transform the DataFrame to an RDD. The first column is delited because the plate (which is a number) is not a meaningful information for KMeans. 
+It is necessary to tune the number of clusters 
 
 ```python
 #CLUSTERING
@@ -162,26 +170,70 @@ rdd = rdd.map(lambda row : row[1:])
 
 # Build the model (cluster the data)
 clusters = KMeans.train(rdd,10, maxIterations=10, runs=10, initializationMode="random")
+```
+The centers of each cluster:
 
-# Evaluate clustering by computing Within Set Sum of Squared Errors
-def error(point):
-    center = clusters.centers[clusters.predict(point)]
-    return sqrt(sum([x**2 for x in (point - center)]))
-
-WSSSE = rdd.map(lambda point: error(point)).reduce(lambda x, y: x + y)
-print("Within Set Sum of Squared Error = " + str(WSSSE))
+```python
+for i,center in enumerate(clusters.clusterCenters) :
+    print("cluster "+ str(i)+": "+str(center)+"\n")
 ```
 
-    /opt/spark/python/pyspark/mllib/clustering.py:176: UserWarning: Support for runs is deprecated in 1.6.0. This param will have no effect in 1.7.0.
-      "Support for runs is deprecated in 1.6.0. This param will have no effect in 1.7.0.")
+```
+   cluster 0: [0.04987755 0.05158012 0.05980438 0.08206529 0.07774918 0.09975163
+ 0.08255323 0.07082299 0.14388402 0.0008565  0.06959793 0.05557751
+ 0.05847849 0.00015067 0.07053904 0.08171296 0.06136208 0.06020887
+ 0.06298468 0.04236028 0.07803777 0.10334453 0.07373788]
 
+cluster 1: [0.02690759 0.02342957 0.50527022 0.02666208 0.90343383 0.02802874
+ 0.01769289 0.63970997 0.84339095 0.9047923  0.01804478 0.03359357
+ 0.48867393 0.19658581 0.02233297 0.0299437  0.92038201 0.01590068
+ 0.03826639 0.01748011 0.92499754 0.02306131 0.03936299]
 
-    Within Set Sum of Squared Error = 2429782.06875
+cluster 2: [0.24339769 0.57968211 0.02308649 0.5793699  0.22045058 0.04366418
+ 0.07452235 0.05482553 0.04184112 0.04558759 0.37397767 0.3504396
+ 0.02059999 0.14390447 0.61849037 0.0448238  0.05977622 0.25415763
+ 0.87051274 0.17705958 0.10021241 0.04004036 0.91119424]
+
+cluster 3: [0.12795567 0.75330198 0.12628052 0.27839701 0.3320018  0.97236003
+ 4.03240771 0.20295084 0.18800335 0.2828426  0.02847755 0.20636557
+ 0.09728755 0.08923394 0.30455512 3.70452935 0.29985181 0.05122093
+ 0.37426712 0.08092262 0.86044714 0.96636815 0.3277495 ]
+
+cluster 4: [1.46433783 2.59959869 1.46680044 3.28666545 3.05335644 0.28356439
+ 0.5902043  2.03666545 2.89830354 3.2271981  0.41335279 2.05618387
+ 1.21917184 1.15432324 3.0745166  0.53338198 3.11665451 0.69253922
+ 3.13872674 0.9014958  2.92831084 0.2824699  3.12294783]
+
+cluster 5: [1.38922785 0.21756435 1.38254454 0.08348508 0.49255637 0.12786528
+ 0.21863443 1.31396549 0.06150149 0.06831622 0.29703193 1.33131207
+ 1.11410442 0.76154092 0.08463026 0.2146357  0.07199579 0.46475304
+ 0.38314529 0.95456849 0.27395949 0.13131958 0.48617343]
+
+cluster 6: [0.61666684 0.93974425 0.61697357 1.08009773 1.18123261 0.05457603
+ 0.07928332 0.82730282 0.97331486 1.06923541 0.20272457 0.84317852
+ 0.54582377 0.38748982 1.05217511 0.07110749 1.07191132 0.24163643
+ 1.12567295 0.44138894 1.08970142 0.05356066 1.20335918]
+
+cluster 7: [0.05296729 0.01699485 0.01742517 0.05599041 0.18040145 0.02146145
+ 0.03487758 0.03915897 0.15057875 0.48886892 0.07488629 0.07893891
+ 0.01647193 0.59771223 0.02118909 0.01823678 0.13426478 0.08016995
+ 0.02822671 0.032056   0.08570962 0.01085601 0.0385598 ]
+
+cluster 8: [0.01545851 0.48267199 0.01275401 1.25420823 0.23178896 0.0913323
+ 0.25111949 0.02935048 1.33197369 1.1618562  0.10005173 0.03136038
+ 0.01041898 0.14698884 1.02193157 0.23685805 1.01548807 0.09959359
+ 0.24294687 0.00715289 0.60490652 0.08809577 0.22108919]
+
+cluster 9: [6.48491879 1.16264501 6.3837587  0.70139211 2.30023202 0.20324826
+ 0.66589327 5.91113689 0.63016241 0.75336427 0.80812065 5.9350348
+ 4.84640371 3.0712297  0.73225058 0.63225058 0.77935035 1.74663573
+ 1.80904872 4.14802784 1.3962877  0.19605568 2.29025522]
+```
 
 
 ## Comment
 
-The results are not the best we can achieved due to the data, however the target of this project was to provide an example and to understand the way of programming in a Spark environments, which is definitely one of the most promising computing framework, especially for Data Science at scale.
+The results are not the best we can achieved due to the data, however if we compare this example with this one, which basically does the same things (especially the pre-processing), we can see that we have better performance by using Spark and the code is also more understandable. Furthermore, the target of this project was to provide an example and to understand the way of programming in a Spark environments, which is definitely one of the most promising computing framework, especially for Data Science at scale.
 
  
 
