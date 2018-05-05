@@ -59,6 +59,7 @@ hdfsdir = '/<path_to>/hdfs/dataset'
 files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
 ```
 
+When you work with unstructered data and you want to perform low-level transformations, you can use RDD instead of spark.Dataframe. As a rule of thumbs, it is better to use spark.Dataframe because they are optimized and you can achieve better performances. However, in this case we use an RDD because they are not heavy computiations. 
 
 ```python
 def apply_preprocessing(rdd) :
@@ -99,7 +100,7 @@ print count
 ``` 
 7264755
 ``` 
-What I'm doing above is to change the shape of the rdd (which is the summary of the all dataset). Firstly I need to convert the categorical nominal values (the gates) to numerical values and then I need to count how many times a gate compares with a plate. It is better to work with spark.DataFrame (which are optimazed). 
+What I'm doing above is to change the shape of the rdd (which is the summary of the all dataset). Firstly I need to convert the categorical nominal values (the gates) to numerical values and then I need to count how many times a gate compares with a plate. As I said before, it is better to work with spark.DataFrame because they are fully optimazed. 
 
 ```python
 from pyspark.sql import Row
@@ -109,12 +110,12 @@ df = (rdd.map(lambda (plate,gate) : Row(plate=plate,gate=gate))).toDF()
 types = df.select("gate").distinct().rdd.flatMap(lambda x: x).collect() #action
 types_expr = [F.when(F.col("gate") == ty, int(1) ).otherwise(int(0)).alias("gate_" + str(ty)) for ty in types]
 df = df.select("plate", *types_expr)
-%prun df= df.groupBy("plate").sum() #action 
+df= df.groupBy("plate").sum() 
 ```
 %prun is a Jupyter command which shows the performance
 
 ```python
-%prun df.show() #action 
+%prun df.show() 
 ```
 
     +-------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+------------+
