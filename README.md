@@ -1,4 +1,6 @@
-# Project work on Apache Spark using Python
+# Project work on Apache Spark (Python)
+
+## About
 
 The aim of this project is to better understand how Spark works under the hood. Additionally it has been provided an example of how to use spark for data preprocessing and data clustering.
 
@@ -49,6 +51,14 @@ sc = SparkContext(conf = conf)
 sqlContext = sql.SQLContext(sc)
 ```
 
+Getting the file names in the hdfs directory: 
+
+```python
+import sh
+hdfsdir = '/<path_to>/hdfs/dataset'
+files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
+```
+
 
 ```python
 def apply_preprocessing(rdd) :
@@ -65,15 +75,6 @@ def apply_preprocessing(rdd) :
     rdd = rdd.map(lambda lines : lines.split(";")).map(lambda (l1,l2,l3,l4,l5) : ((l1,int(l2))))
     return rdd
 ```
-
-Getting the file names in the hdfs directory. 
-
-```python
-import sh
-hdfsdir = '/<path_to>/hdfs/dataset'
-files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
-```
-
 
 ```python
 def main() :
@@ -144,7 +145,7 @@ df = df.select("plate", *types_expr)
     
      
 
-As we can see the number of records is definitely reduced. 
+As we can see the number of records is definitely reduced: 
 
 ```python
 df.count() #action 
@@ -229,8 +230,9 @@ cluster 9: [6.48491879 1.16264501 6.3837587  0.70139211 2.30023202 0.20324826
  4.84640371 3.0712297  0.73225058 0.63225058 0.77935035 1.74663573
  1.80904872 4.14802784 1.3962877  0.19605568 2.29025522]
 ```
-At the end we can compute the WSSSE
-```
+At the end we can compute the WSSSE:
+
+```python
 def error(point):
     center = clusters.centers[clusters.predict(point)]
     return sqrt(sum([x**2 for x in (point - center)]))
