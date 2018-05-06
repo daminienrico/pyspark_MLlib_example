@@ -2,7 +2,7 @@
 
 ## About
 
-The aim of this project is to better understand how Spark works under the hood. Additionally it has been provided an example of how to use spark for data preprocessing and data clustering.
+The aim of this project is to better understand how Spark works under the hood. With this purpuse, it has been provided an example of how to use spark for data preprocessing and data clustering.
 
 ## Recommendation
 
@@ -88,9 +88,13 @@ def main() :
         rdd_tot = rdd_tot.union(rdd_new)
     return rdd_tot 
 ```
-They are not actions, therefore it does not take long. 
+As we can see from the ouput of the magic command %time it does not take long, indeed they are not actions.
 ```python
-rdd = main() 
+%time rdd = main() 
+```
+```
+CPU times: user 123 ms, sys: 25.4 ms, total: 148 ms
+Wall time: 13.3 s
 ```
 When we call the function count() we need to know the actual number of records, that's why takes long.
 ```python
