@@ -2,7 +2,8 @@
 
 ## About
 
-The aim of this project is to better understand how Spark works under the hood. With this purpuse, it has been provided an example of how to use spark for data preprocessing and data clustering.
+The aim of this project is to better understand how Spark works under the hood. With this purpuse, it has been provided an example of how to use spark for data preprocessing and data clustering. 
+It has been used Spark StandAlone mode, see [here](https://spark.apache.org/docs/latest/spark-standalone.html) how to set it up.  
 
 ## Recommendation
 
@@ -256,4 +257,5 @@ The results are not the best we can achieved due to the data, however if we comp
 * [Spark](https://spark.apache.org/)
 * [Machine Learning Library (MLlib)](https://spark.apache.org/docs/1.1.0/mllib-guide.html)
 * [Jupyter Notebook](http://jupyter.org/)
+
 
