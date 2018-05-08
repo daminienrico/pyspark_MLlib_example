@@ -72,12 +72,8 @@ def main() :
 
 
 ```python
-%time rdd = main()
+rdd = main()
 ```
-
-    CPU times: user 45.2 ms, sys: 11.6 ms, total: 56.7 ms
-    Wall time: 206 ms
-
 
 
 ```python
