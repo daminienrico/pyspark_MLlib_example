@@ -1,5 +1,6 @@
 
 ## Example
+How to transform nominal values to numerical values. 
 
 
 ```python
@@ -92,9 +93,8 @@ rdd.take(5)
 
 
 
-
-```python
-#conto quante sono i paths totali 
+I need to know the total number of paths for the generate an unique ID (which must be a number):
+```python 
 num_path = rdd.map(lambda ((plate,path),times) : (path,1)).keys().distinct().count()
 print num
 ```
