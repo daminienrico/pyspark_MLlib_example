@@ -1,4 +1,4 @@
-
+Configuro e creo lo SparkContext:
 
 ```python
 import findspark
@@ -12,13 +12,14 @@ sc = SparkContext(conf = conf)
 sqlContext = sql.SQLContext(sc)
 ```
 
-
+Ottengo i file in hdfs: 
 ```python
 import sh
 hdfsdir = '/user/ubuntu/hdfs/dataset'
 files = [ line.rsplit(None,1)[-1] for line in sh.hdfs('dfs','-ls',hdfsdir).split('\n') if len(line.rsplit(None,1))][2:]   
 ```
 
+Voglio solo i primi 4 per poter fare il confronto:
 
 ```python
 files = files[:4]
@@ -79,6 +80,7 @@ def main() :
     return rdd_info    
 ```
 
+Applico le funzioni di preprocessing dei dati: 
 
 ```python
 %time rdd = main()
@@ -88,6 +90,7 @@ def main() :
     Wall time: 12.4 s
 
 
+Ottengo un RDD come questo:
 
 ```python
 rdd.take(5)
@@ -103,7 +106,7 @@ rdd.take(5)
      ((u'8530468', '18'), 1)]
 
 
-
+Calcolo il numero di percorsi totali per la funzione di hash: 
 
 ```python
 %time num_path = rdd.map(lambda ((plate,path),times) : (path,1)).keys().distinct().count()
@@ -114,7 +117,7 @@ print num_path
     Wall time: 1min 9s
     25375
 
-
+Funzione di hash:
 
 ```python
 import sys 
@@ -130,6 +133,7 @@ def get_hash(path) :
     
 ```
 
+Apllico la funzione di hash:
 
 ```python
 %time rdd_final  = rdd.map(lambda ((plate,path),times) : (get_hash(path),times ))
@@ -138,7 +142,7 @@ def get_hash(path) :
     CPU times: user 116 µs, sys: 37 µs, total: 153 µs
     Wall time: 166 µs
 
-
+Non tengo conto della prima colonna perchè fuorviante per K-means, ottengo quindi: 
 
 ```python
 rdd_final.take(5)
@@ -157,7 +161,7 @@ from pyspark.mllib.clustering import KMeans
 from numpy import array
 from math import sqrt
 ```
-
+Eseguo il clustering:
 
 ```python
 %time clusters = KMeans.train(rdd_final,4, maxIterations=3, initializationMode="random")
@@ -166,7 +170,7 @@ from math import sqrt
     CPU times: user 18.1 ms, sys: 3.33 ms, total: 21.5 ms
     Wall time: 24 s
 
-
+Ottengo i centroidi:
 
 ```python
 for i,center in enumerate(clusters.clusterCenters) :
@@ -183,7 +187,6 @@ for i,center in enumerate(clusters.clusterCenters) :
     
 
 
-
 ```python
 def error(point):
     center = clusters.centers[clusters.predict(point)]
@@ -197,7 +200,7 @@ print("Within Set Sum of Squared Error = " + str(WSSSE))
     Wall time: 1min 31s
     Within Set Sum of Squared Error = 810316110.429
 
-
+Stampo i dati:
 
 ```python
 from pyspark.sql import Row
